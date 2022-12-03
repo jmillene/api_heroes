@@ -1,58 +1,60 @@
-version: "3"
-
+version: '3.9'
 services:
-  # Serviço que irá rodar o node
-  node:
-    # Imagem base do container
-    image: node:16
-    # Nome do container para facilitar execução
-    container_name: api_heroes
-    # Mesmo que `docker run -t`
-    tty: true
-    # Mesmo que `docker run -i`
-    stdin_open: true
-    # Substitui o comando padrão da imagem do node
-    command: bash
-    # Restarta a imagem caso algo a faça parar
-    # Diretório padrão de execução
-    working_dir: /app
-    # Lista de volumes (diretórios) mapeados de fora para dentro do container
+  frontend:
+    build: ./front-end
+    ports:
+      - 3000:3000
+    working_dir: /front-end
+    command: npm run dev
     volumes:
-      # Monta o diretório atual, com todos os dados do projeto, 
-      # dentro do diretório /app
-      - ./:/app
-    # Lista de serviços do qual este serviço depende
+      - ./front-end:/front-end
     depends_on:
-      # Precisa do banco funcionando antes de subir o node
-      - db
-    # Lista de portas mapeadas de dentro para fora do container
-    # na notação porta_de_fora:porta_de_dentro
+      backend:
+        condition: service_healthy
+    # Os `healthcheck` devem garantir que a aplicação
+    # está operacional, antes de liberar o container
+    healthcheck:
+      test: ["CMD", "lsof", "-t", "-i:3000"]  # Caso utilize outra porta interna para o front, altere ela aqui também
+      timeout: 10s
+      retries: 5
+  backend:
+    container_name: back-end
+    build: ./back-end
     ports:
-      # Expõe a porta padrão da aplicação: altere aqui caso use outra porta
-      - 3005:3005
-    # Configura as variáveis de ambiente dentro do container
+      - 3001:3001
+    working_dir: /back-end
+    command: npm run dev
+    volumes:
+      - ./back-end:/back-end
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      - APP_PORT=3005
-      - DB_USER=root
-      - DB_PASS=root
-      - DB_HOST=db
-      - DB_PORT=3306
-  # Serviço que irá rodar o banco de dados
+      - APP_PORT=3010
+       -NODE_ENV=development
+       -API_PORT=3010
+       -MYSQL_HOST=localhost
+       -MYSQL_PORT=3306
+       -MYSQL_USER=root
+       -MYSQL_PASSWORD=root
+       -MYSQL_DB_NAME=api_heroes
+       -EVAL_ALWAYS_RESTORE_DEV_DB=true
+    healthcheck:
+      test: ["CMD", "lsof", "-t", "-i:3001"] # Caso utilize outra porta interna para o back, altere ela aqui também
+      timeout: 10s
+      retries: 5
   db:
-    container_name: api_net
-    image: mysql
-    # Lista de portas mapeadas de dentro para fora do container
-    # na notação porta_de_fora:porta_de_dentro
+    image: mysql:8.0.21
+    container_name: db
+    platform: linux/x86_64
     ports:
-      # Expõe a porta padrão do banco de dados
-      - 3306:3306
-      - 33060:33060
+      - 3307:3306
     environment:
       - MYSQL_ROOT_PASSWORD=root
-
-# Lista de redes que os containeres irão utilizar
-networks:
-  # Rede padrão, criada automaticamente
-  default:
-    # Dá um nome específico à rede padrão
-    name: api_heroes
+    restart: 'always'
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"] # Deve aguardar o banco ficar operacional
+      timeout: 10s
+      retries: 5
+    cap_add:
+      - SYS_NICE # Deve omitir alertas menores
