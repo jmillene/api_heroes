@@ -12,7 +12,7 @@ Alignment.init({
     },
     alignment: sequelize_1.STRING,
     power: sequelize_1.STRING,
-    heroes_id: sequelize_1.NUMBER,
+    heroesId: sequelize_1.NUMBER,
 }, {
     sequelize: _1.default,
     modelName: 'alignment',
