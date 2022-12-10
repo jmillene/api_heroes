@@ -27,7 +27,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      - APP_PORT=3023
+      - APP_PORT=3025
       # Os dados abaixo se referem ao container `db`
       # Dica: Relembre aqui da comunicação interna entre containers
       - DB_USER=root

@@ -1,4 +1,3 @@
-import { where } from 'sequelize';
 import IHeroes from '../database/interfaces/IHeroes';
 
 import Heroes from '../database/models/heroes.model';
